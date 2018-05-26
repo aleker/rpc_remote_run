@@ -24,21 +24,31 @@ class RPCServer(RPCProtocol):
         return command_array
 
 
+class Server:
+    def __init__(self, server_address):
+        print("----- Starting UDP-RPC server -----")
+        loop = asyncio.get_event_loop()
+        # One protocol instance will be created to serve all client requests
+        listen = loop.create_datagram_endpoint(
+            RPCServer, local_addr=server_address)
+        transport, protocol = loop.run_until_complete(listen)
+        self.protocol = protocol
+        self.transport = transport
+
+    @asyncio.coroutine
+    def print_result(self, client_address, result_line):
+        result = yield from self.protocol.run_command(client_address, result_line)
+        print("Sent: `%s`" % result_line if result[0] else "No response when line sending.")
+
+
 def main():
     # read arguments
     server_config = read_config_file('config.ini')
-    server_ip = server_config['ip']
-    server_port = server_config['port']
 
     # start a server on UDP port
+    server = Server((server_config['ip'], server_config['port']))
+
     loop = asyncio.get_event_loop()
-    print("----- Starting UDP-RPC server -----")
-
-    # One protocol instance will be created to serve all client requests
-    listen = loop.create_datagram_endpoint(
-        RPCServer, local_addr=(server_ip, server_port))
-    transport, protocol = loop.run_until_complete(listen)
-
     # wait for clients
     try:
         loop.run_forever()
@@ -46,7 +56,7 @@ def main():
         pass
 
     # close connection
-    transport.close()
+    server.transport.close()
     loop.close()
 
 

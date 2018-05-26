@@ -7,8 +7,12 @@ from helper import read_config_file
 
 class RPCServer(RPCProtocol):
     # Any methods starting with "rpc_" are available to clients.
-    def rpc_print_result(self, sender, command):
-        print("New client at %s:%i wants to: `%s`" % (sender[0], sender[1], command))
+    def rpc_print_result(self, sender, result):
+        if result is not False:
+            print(result)
+        else:
+            print("End of stream!")
+        return True
 
 
 class Client:
@@ -43,10 +47,10 @@ def main():
 
     server_config = read_config_file('config.ini')
 
-    loop = asyncio.get_event_loop()
     client = Client((client_ip, int(client_port)), (server_config['ip'], int(server_config['port'])))
 
     # call remote command
+    loop = asyncio.get_event_loop()
     func = client.run_command(remote_command)
     loop.run_until_complete(func)
 
