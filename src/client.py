@@ -6,6 +6,10 @@ from helper import read_config_file
 
 
 class RPCServer(RPCProtocol):
+    def __init__(self):
+        super().__init__()
+        self._waitTimeout = 60
+
     # Any methods starting with "rpc_" are available to clients.
     def rpc_print_result(self, sender, result_line):
         if result_line is not False:
@@ -30,8 +34,9 @@ class Client:
 
     @asyncio.coroutine
     def run_command(self, command):
+        print("'%s':\n" % command)
         result = yield from self.protocol.run_command(self.server_address, command)
-        print("`%s` is: %s\n" % (command, result[1]) if result[0] else "No response received.")
+        # print("'%s': %s\n" % (command, result[1]) if result[0] else "No response received.")
         loop = asyncio.get_event_loop()
         loop.stop()
 
