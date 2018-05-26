@@ -1,7 +1,8 @@
 import asyncio
 from rpcudp.protocol import RPCProtocol
-import configparser
 import subprocess
+
+from helper import read_config_file
 
 
 class RPCServer(RPCProtocol):
@@ -12,8 +13,6 @@ class RPCServer(RPCProtocol):
         try:
             result = subprocess.check_output(command_array,
                                              stderr=subprocess.STDOUT)
-            for line in result.strip().decode().splitlines():
-                print(line)
             return result
         except subprocess.CalledProcessError:
             return "Error when calling remote command!"
@@ -23,17 +22,6 @@ class RPCServer(RPCProtocol):
     def get_command_name_and_arguments(self, command):
         command_array = command.split()
         return command_array
-
-
-def read_config_file(config_path):
-    config = configparser.ConfigParser()
-    dataset = config.read(config_path)
-    if len(dataset) == 1 and 'rpc.server' in config:
-        return config['rpc.server']
-    config.read("../" + config_path)
-    if len(dataset) == 1 and 'rpc.server' in config:
-        return config['rpc.server']
-    raise ValueError("Failed to open/find config file!")
 
 
 def main():

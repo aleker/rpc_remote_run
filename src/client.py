@@ -1,24 +1,35 @@
 import asyncio
 import sys
 from rpcudp.protocol import RPCProtocol
-import configparser
+
+from helper import read_config_file
 
 
-@asyncio.coroutine
-def run_command(protocol, address, command):
-    result = yield from protocol.run_command(address, command)
-    print(result[1] if "Result of `%s` is\n%s" % (command, result[0]) else "No response received.")
+class RPCServer(RPCProtocol):
+    # Any methods starting with "rpc_" are available to clients.
+    def rpc_print_result(self, sender, command):
+        print("New client at %s:%i wants to: `%s`" % (sender[0], sender[1], command))
 
 
-def read_config_file(config_path):
-    config = configparser.ConfigParser()
-    dataset = config.read(config_path)
-    if len(dataset) == 1 and 'rpc.server' in config:
-        return config['rpc.server']
-    config.read("../" + config_path)
-    if len(dataset) == 1 and 'rpc.server' in config:
-        return config['rpc.server']
-    raise ValueError("Failed to open/find config file!")
+class Client:
+    def __init__(self, client_address, server_address):
+        print("----- Starting UDP-RPC client -----")
+        self.server_address = server_address
+        self.client_address = client_address
+        # Start local UDP server to be able to handle responses
+        loop = asyncio.get_event_loop()
+        connect = loop.create_datagram_endpoint(
+            RPCServer, local_addr=client_address)
+        transport, protocol = loop.run_until_complete(connect)
+        self.protocol = protocol
+        self.transport = transport
+
+    @asyncio.coroutine
+    def run_command(self, command):
+        result = yield from self.protocol.run_command(self.server_address, command)
+        print("Result of `%s` is:\n" % command if result[0] else "No response received.")
+        for line in result[1].strip().decode().splitlines():
+            print(line)
 
 
 def main():
@@ -26,29 +37,25 @@ def main():
     if len(sys.argv) < 4:
         print("Arguments should be: CLIENT_ADDRESS CLIENT_PORT COMMAND!")
         exit(-1)
-    server_config = read_config_file('config.ini')
-    server_ip = server_config['ip']
-    server_port = server_config['port']
     client_ip = sys.argv[1]
     client_port = sys.argv[2]
     remote_command = sys.argv[3]
 
-    # Start local UDP server to be able to handle responses
-    loop = asyncio.get_event_loop()
-    print("----- Starting UDP-RPC client -----")
-    connect = loop.create_datagram_endpoint(
-        RPCProtocol, local_addr=(client_ip, int(client_port)))
-    transport, protocol = loop.run_until_complete(connect)
+    server_config = read_config_file('config.ini')
 
-    func = run_command(protocol, (server_ip, int(server_port)), remote_command)
+    loop = asyncio.get_event_loop()
+    client = Client((client_ip, int(client_port)), (server_config['ip'], int(server_config['port'])))
+
+    # call remote command
+    func = client.run_command(remote_command)
     loop.run_until_complete(func)
 
-    # try:
-    #     loop.run_forever()
-    # except KeyboardInterrupt:
-    #     pass
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
 
-    transport.close()
+    client.transport.close()
     loop.close()
 
 
