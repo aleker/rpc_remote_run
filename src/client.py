@@ -32,6 +32,8 @@ class Client:
     def run_command(self, command):
         result = yield from self.protocol.run_command(self.server_address, command)
         print("`%s` is: %s\n" % (command, result[1]) if result[0] else "No response received.")
+        loop = asyncio.get_event_loop()
+        loop.stop()
 
 
 def main():
@@ -52,10 +54,10 @@ def main():
     func = client.run_command(remote_command)
     loop.run_until_complete(func)
 
-    # try:
-    #     loop.run_forever()
-    # except KeyboardInterrupt:
-    #     pass
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
 
     client.transport.close()
     loop.close()
