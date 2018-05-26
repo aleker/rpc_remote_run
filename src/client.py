@@ -7,9 +7,9 @@ from helper import read_config_file
 
 class RPCServer(RPCProtocol):
     # Any methods starting with "rpc_" are available to clients.
-    def rpc_print_result(self, sender, result):
-        if result is not False:
-            print(result)
+    def rpc_print_result(self, sender, result_line):
+        if result_line is not False:
+            print(result_line)
         else:
             print("End of stream!")
         return True
@@ -31,9 +31,7 @@ class Client:
     @asyncio.coroutine
     def run_command(self, command):
         result = yield from self.protocol.run_command(self.server_address, command)
-        print("Result of `%s` is:\n" % command if result[0] else "No response received.")
-        for line in result[1].strip().decode().splitlines():
-            print(line)
+        print("`%s` is: %s\n" % (command, result[1]) if result[0] else "No response received.")
 
 
 def main():
@@ -54,10 +52,10 @@ def main():
     func = client.run_command(remote_command)
     loop.run_until_complete(func)
 
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
+    # try:
+    #     loop.run_forever()
+    # except KeyboardInterrupt:
+    #     pass
 
     client.transport.close()
     loop.close()

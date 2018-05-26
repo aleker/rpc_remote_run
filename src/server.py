@@ -4,6 +4,8 @@ import subprocess
 
 from helper import read_config_file
 
+server = None
+
 
 class RPCServer(RPCProtocol):
     # Any methods starting with "rpc_" are available to clients.
@@ -13,7 +15,12 @@ class RPCServer(RPCProtocol):
         try:
             result = subprocess.check_output(command_array,
                                              stderr=subprocess.STDOUT)
-            return result
+            loop = asyncio.get_event_loop()
+            for line in result.strip().decode().splitlines():
+                # suspends the coroutine until the future is done
+                func = yield from server.print_result(sender, line)
+                # loop.run_until_complete(func)
+            return "Proper command!"
         except subprocess.CalledProcessError:
             return "Error when calling remote command!"
         except FileNotFoundError:
@@ -37,7 +44,8 @@ class Server:
 
     @asyncio.coroutine
     def print_result(self, client_address, result_line):
-        result = yield from self.protocol.run_command(client_address, result_line)
+        print("print_result")
+        result = yield from self.protocol.print_result(client_address, result_line)
         print("Sent: `%s`" % result_line if result[0] else "No response when line sending.")
 
 
@@ -46,6 +54,7 @@ def main():
     server_config = read_config_file('config.ini')
 
     # start a server on UDP port
+    global server
     server = Server((server_config['ip'], server_config['port']))
 
     loop = asyncio.get_event_loop()
