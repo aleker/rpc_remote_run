@@ -8,9 +8,12 @@ class RPCServer(RPCProtocol):
     # Any methods starting with "rpc_" are available to clients.
     def rpc_run_command(self, sender, command):
         print("New client at %s:%i wants to: `%s`" % (sender[0], sender[1], command))
+        command_array = self.get_command_name_and_arguments(command)
         try:
-            result = subprocess.check_output(["echo", "Hello World!"],
+            result = subprocess.check_output(command_array,
                                              stderr=subprocess.STDOUT)
+            for line in result.strip().decode().splitlines():
+                print(line)
             return result
         except subprocess.CalledProcessError:
             return "Error when calling remote command!"
@@ -18,7 +21,8 @@ class RPCServer(RPCProtocol):
             return "Wrong command!"
 
     def get_command_name_and_arguments(self, command):
-        pass
+        command_array = command.split()
+        return command_array
 
 
 def read_config_file(config_path):
