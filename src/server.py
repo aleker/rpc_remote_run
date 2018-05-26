@@ -1,14 +1,24 @@
 import asyncio
 from rpcudp.protocol import RPCProtocol
 import configparser
+import subprocess
 
 
 class RPCServer(RPCProtocol):
     # Any methods starting with "rpc_" are available to clients.
     def rpc_run_command(self, sender, command):
-        # This could return a Deferred as well. sender is (ip,port)
         print("New client at %s:%i wants to: `%s`" % (sender[0], sender[1], command))
-        return "Result of `%s` is ... tbc" % command
+        try:
+            result = subprocess.check_output(["echo", "Hello World!"],
+                                             stderr=subprocess.STDOUT)
+            return result
+        except subprocess.CalledProcessError:
+            return "Error when calling remote command!"
+        except FileNotFoundError:
+            return "Wrong command!"
+
+    def get_command_name_and_arguments(self, command):
+        pass
 
 
 def read_config_file(config_path):
@@ -50,8 +60,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

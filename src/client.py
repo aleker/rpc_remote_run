@@ -6,10 +6,8 @@ import configparser
 
 @asyncio.coroutine
 def run_command(protocol, address, command):
-    # result will be a tuple - first arg is a boolean indicating whether a response
-    # was received, and the second argument is the response if one was received.
     result = yield from protocol.run_command(address, command)
-    print(result[1] if result[0] else "No response received.")
+    print(result[1] if "Result of `%s` is\n%s" % (command, result[0]) else "No response received.")
 
 
 def read_config_file(config_path):
@@ -45,10 +43,10 @@ def main():
     func = run_command(protocol, (server_ip, int(server_port)), remote_command)
     loop.run_until_complete(func)
 
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
+    # try:
+    #     loop.run_forever()
+    # except KeyboardInterrupt:
+    #     pass
 
     transport.close()
     loop.close()
