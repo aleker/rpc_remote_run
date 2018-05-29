@@ -53,7 +53,6 @@ def main():
 
     # call remote command
     loop = asyncio.get_event_loop()
-    # asyncio.ensure_future(client.run_command(remote_command))
     func = client.run_command(remote_command)
     loop.run_until_complete(func)
 
