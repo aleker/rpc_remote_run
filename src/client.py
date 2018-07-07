@@ -8,7 +8,7 @@ from helper import read_config_file
 class RPCServer(RPCProtocol):
     def __init__(self):
         super().__init__()
-        self._waitTimeout = 30
+        self._waitTimeout = 60
 
     # Any methods starting with "rpc_" are available to clients.
     def rpc_print_result(self, sender, result_line):
@@ -17,10 +17,13 @@ class RPCServer(RPCProtocol):
         except AttributeError:
             new_result = result_line
         print(new_result)
+        return "result printed"
 
     def rpc_end_connection(self, sender):
         loop = asyncio.get_event_loop()
         loop.stop()
+        print("\n---------Connection ended-------------")
+        return "connection ended"
 
 
 class Client:
