@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 from rpcudp.protocol import RPCProtocol
 import subprocess
 
@@ -12,21 +14,8 @@ class RPCServer(RPCProtocol):
     def rpc_run_command(self, sender, command):
         print("New client at %s:%i wants to: `%s`" % (sender[0], sender[1], command))
         command_array = self.get_command_name_and_arguments(command)
-        try:
-            result = subprocess.check_output(command_array,
-                                             stderr=subprocess.STDOUT)
-            # run in background
-            asyncio.ensure_future(server.print_result(sender, result))
-            return "Proper command!"
-        except subprocess.CalledProcessError as e:
-            asyncio.ensure_future(server.print_result(sender, e.output.strip().decode()))
-            return "Error when calling remote command!"
-        except FileNotFoundError as e:
-            asyncio.ensure_future(server.print_result(sender, str(e)))
-            return "Wrong command!"
-        except Exception as e:
-            asyncio.ensure_future(server.print_result(sender, str(e)))
-            return "Error occurred!"
+        asyncio.ensure_future(server.print_result(sender, command_array))
+        return "Got request!"
 
     def get_command_name_and_arguments(self, command):
         command_array = command.split()
@@ -45,13 +34,28 @@ class Server:
         self.transport = transport
 
     @asyncio.coroutine
-    def print_result(self, client_address, result):
+    def print_result(self, client_address, command_array):
+        # try:
+        #     new_result = result.strip().decode()
+        # except AttributeError:
+        #     new_result = result
+        # for line in new_result.splitlines():
+        #     yield from self.protocol.print_result(client_address, line)
+        # yield from self.protocol.end_connection(client_address)
         try:
-            new_result = result.strip().decode()
-        except AttributeError:
-            new_result = result
-        for line in new_result.splitlines():
-            yield from self.protocol.print_result(client_address, line)
+            pipe = subprocess.Popen(command_array, stdout=subprocess.PIPE, shell=False) # output komendy zapisywany do pipe'a
+            # pipe.stdout.close()
+            for line in iter(pipe.stdout.readline, 'b'):
+                time.sleep(2)
+                if line == '':
+                    break
+                yield from self.protocol.print_result(client_address, line)
+        except subprocess.CalledProcessError as e:
+            asyncio.ensure_future(server.print_result(client_address, e.output.strip().decode()))
+        except FileNotFoundError as e:
+            asyncio.ensure_future(server.print_result(client_address, str(e)))
+        except Exception as e:
+            asyncio.ensure_future(server.print_result(client_address, str(e)))
         yield from self.protocol.end_connection(client_address)
 
 

@@ -12,7 +12,11 @@ class RPCServer(RPCProtocol):
 
     # Any methods starting with "rpc_" are available to clients.
     def rpc_print_result(self, sender, result_line):
-        print(result_line)
+        try:
+            new_result = result_line.strip().decode()
+        except AttributeError:
+            new_result = result_line
+        print(new_result)
 
     def rpc_end_connection(self, sender):
         loop = asyncio.get_event_loop()
