@@ -11,12 +11,15 @@ class RPCServer(RPCProtocol):
         self._waitTimeout = 60
 
     # Any methods starting with "rpc_" are available to clients.
-    def rpc_print_result(self, sender, result_line):
+    def rpc_print_result(self, sender, result_line, is_error):
         try:
             new_result = result_line.strip().decode()
         except AttributeError:
             new_result = result_line
-        print(new_result)
+        if is_error:
+            print(new_result, file=sys.stderr)
+        else:
+            print(new_result)
         return "result printed"
 
     def rpc_end_connection(self, sender):

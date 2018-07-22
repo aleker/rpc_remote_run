@@ -1,7 +1,5 @@
 import asyncio
-import time
 
-from asyncio import Queue
 from rpcudp.protocol import RPCProtocol
 import subprocess
 
@@ -39,13 +37,17 @@ class Server:
                 if line == b'':
                     # time.sleep(1)
                     break
-                yield from self.protocol.print_result(client_address, line)
+                yield from self.protocol.print_result(client_address, line, False)
+            for line in iter(pipe.stderr.readline, 'b'):
+                if line == b'':
+                    break
+                yield from self.protocol.print_result(client_address, line, True)
         except subprocess.CalledProcessError as e:
-            yield from self.protocol.print_result(client_address, e.output.strip().decode())
+            yield from self.protocol.print_result(client_address, e.output.strip().decode(), True)
         except FileNotFoundError as e:
-            yield from self.protocol.print_result(client_address, str(e))
+            yield from self.protocol.print_result(client_address, str(e), True)
         except Exception as e:
-            yield from self.protocol.print_result(client_address, str(e))
+            yield from self.protocol.print_result(client_address, str(e), True)
         yield from self.protocol.end_connection(client_address)
 
     @staticmethod
